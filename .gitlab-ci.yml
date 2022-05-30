@@ -1,0 +1,36 @@
+image: node:18
+
+stages:
+  - prebuild
+  - test
+  - build
+
+cache: &global_cache
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
+    - .npm_cache/
+  policy: pull # Everybody can only pull, prebuild overrides & can push
+
+# Explicit build stage helps to prevent concurrent data generation, it's
+# only written & persisted once, then shared between stages. Only it can
+# update the build cache
+prebuild:
+  stage: prebuild
+  script:
+    - npm config set cache .npm_cache && npm --prefer-offline --no-audit --cache-folder .npm_cache ci
+  cache:
+    <<: *global_cache
+    policy: push
+
+test:
+  stage: test
+  script:
+    - npm config set cache .npm_cache && npm --prefer-offline --no-audit --cache-folder .npm_cache install
+    - yarn test
+
+lint:
+  stage: test
+  script:
+    - npm config set cache .npm_cache && npm --prefer-offline --no-audit --cache-folder .npm_cache install
+    - yarn lint
